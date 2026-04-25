@@ -344,6 +344,12 @@ const palaceBook01 = {
           priority: 90,
           if: ['flag:bribedEunuch=true'],
           text: '入殿前那句提醒还压在你心里，所以当贵妃抬手拨茶盏、像是随口要点人时，你已先一步把神情收得滴水不漏。'
+        },
+        {
+          id: 'greeting_after_offending',
+          priority: 85,
+          if: ['flag:offendedConsort=true'],
+          text: '你刚进殿，就感觉到一道目光从斜上方冷冷地落下来。贵妃今日没有拨茶盏，也没有和旁人搭话，只是在你行礼时轻轻偏过了脸。那一点刻意的无视，比当众斥责更教人脊背发紧。'
         }
       ],
       choices: [
@@ -440,6 +446,12 @@ const palaceBook01 = {
           priority: 90,
           if: ['flag:offendedConsort=true'],
           text: '流言像是长了腿一样从贵妃宫里一路传出来，你几乎不用细查，也知道是谁在借题发挥。可知道归知道，眼下更难的是怎么接这一招。'
+        },
+        {
+          id: 'rumor_after_garden',
+          priority: 85,
+          if: ['flag:hadGardenEncounter=true'],
+          text: '流言里忽然多了一段你夜行御花园的旧事，被人添枝加叶地传成了另一番模样。你明明记得那晚风凉月静，到了别人嘴里却成了一出精心编排的偶遇。'
         }
       ],
       choices: [
@@ -682,6 +694,20 @@ const palaceBook01 = {
       order: 14,
       title: '要挟贵妃',
       fallbackText: '你把证据轻轻推过去时，贵妃终于第一次正眼看你。那目光里没有慌，只有重新估量。你忽然明白，自己现在做的不是揭发，而是在和一个更熟悉宫中规则的人谈价。谈得好，你能借势；谈不好，你就会变成最先被掐灭的知情人。',
+      textVariants: [
+        {
+          id: 'blackmail_with_clue',
+          priority: 100,
+          if: ['flag:foundPoisonClue=true'],
+          text: '你摊开手中的线索时，贵妃的目光先落在那半截香囊穗子上，然后才慢慢抬起来看你。她知道这不是你能凭空捏出来的东西，而你知道，真正值钱的不是揭发，而是让她明白你随时可以揭发。'
+        },
+        {
+          id: 'blackmail_with_leverage',
+          priority: 90,
+          if: ['flag:hasConsortLeverage=true'],
+          text: '这不是你第一次和她对视，但这一次她眼里多了一点别的东西——不是怕，是算。你知道她已经在权衡，是把你拉进自己的局里划算，还是找个更干净的办法把你抹掉更省事。'
+        }
+      ],
       choices: [
         {
           id: 'take_secret_deal',
@@ -746,6 +772,12 @@ const palaceBook01 = {
           priority: 80,
           if: ['flag:hadGardenEncounter=true'],
           text: '皇帝病榻前的灯火让你想起那个花园夜晚。如今人人都要用那点旧印象重新估量你，连你自己也不能假装它从未发生过。'
+        },
+        {
+          id: 'late_game_with_observation',
+          priority: 75,
+          if: ['flag:observedRivals=true'],
+          text: '你站在殿外候命时，已经看出今日站位的微妙变化——皇后身侧的人比往日多了三成，而贵妃那边虽然安静，退下的步伐却比平常更急。你入宫第一天记下的那些面孔，此刻终于拼成了一幅能用的图。'
         }
       ],
       choices: [
@@ -1009,9 +1041,9 @@ const palaceBook01 = {
       priority: 80,
       summary: '你没有站到最高处，却牢牢抓住了皇帝最后的偏爱。后宫记得你的名字，也记得你让人不敢小看的分量。',
       showIf: [
-        'stat:favor>=78',
+        'stat:favor>=68',
         'relation:emperor>=1',
-        'stat:beauty>=58'
+        'stat:beauty>=52'
       ],
       scoreBonus: 24
     },
@@ -1088,7 +1120,7 @@ const palaceBook01 = {
       summary: '你原以为自己在操盘，直到最后才发现自己只是棋盘上最方便被舍弃的一子。',
       showIf: [
         'flag:choseFactionPrince=true',
-        'relation:princeFaction<=1',
+        'relation:princeFaction<=2',
         'route:manipulative>=1'
       ],
       scoreBonus: -6
@@ -1097,11 +1129,11 @@ const palaceBook01 = {
       id: 'purged_after_scheme',
       title: '反遭清算',
       category: 'backfire',
-      priority: 75,
+      priority: 77,
       summary: '你拿到过把柄，也以为能借此改命。可当真正的大局收束时，最先被清理的，往往就是知道太多的人。',
       showIf: [
         'flag:hasConsortLeverage=true',
-        'stat:suspicion>=62',
+        'stat:suspicion>=45',
         'relation:empress<=0'
       ],
       scoreBonus: -12
@@ -1137,12 +1169,11 @@ const palaceBook01 = {
       id: 'cold_palace_decline',
       title: '冷宫凋零',
       category: 'fall',
-      priority: 50,
+      priority: 61,
       summary: '你没有立刻死去，却被从所有人的视线里慢慢抹掉。那座冷宫像一口深井，把你的后半生都吞了进去。',
       showIf: [
         'relation:empress<=-2',
-        'stat:favor<45',
-        'stat:health<=45'
+        'stat:health<=85'
       ],
       scoreBonus: -10
     },
@@ -1153,7 +1184,7 @@ const palaceBook01 = {
       priority: 88,
       summary: '你还是走到了那只白玉酒盏前。宫里从不缺失败者，缺的只是有人替她们把名字记住。',
       showIf: [
-        'stat:suspicion>=65'
+        'stat:suspicion>=50'
       ],
       scoreBonus: -20
     },
