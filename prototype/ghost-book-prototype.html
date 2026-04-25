@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>穿书模拟器 - 宫斗本</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .container {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+  }
+  .scene-title {
+    font-size: 14px;
+    color: #e8c547;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  .story-text {
+    font-size: 16px;
+    line-height: 1.8;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    border-left: 3px solid #e8c547;
+  }
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .choice-btn {
+    padding: 16px 20px;
+    background: rgba(232,197,71,0.08);
+    border: 1px solid rgba(232,197,71,0.3);
+    border-radius: 12px;
+    color: #eee;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    line-height: 1.6;
+  }
+  .choice-btn:hover {
+    background: rgba(232,197,71,0.15);
+    border-color: rgba(232,197,71,0.6);
+  }
+  .choice-btn .tag {
+    font-size: 11px;
+    color: #999;
+    display: block;
+    margin-top: 4px;
+  }
+  .status-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .status-item {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.05);
+  }
+  .status-item .val { color: #e8c547; font-weight: bold; }
+  .death-screen, .result-screen {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .death-screen h2 {
+    color: #ff6b6b;
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+  .result-screen h2 {
+    color: #e8c547;
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+  .result-card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 20px 0;
+    text-align: left;
+  }
+  .result-card .label {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 4px;
+  }
+  .result-card .value {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 16px;
+  }
+  .restart-btn {
+    padding: 14px 40px;
+    background: #e8c547;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+  .restart-btn:hover {
+    background: #f0d060;
+  }
+  .fade-in {
+    animation: fadeIn 0.4s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .chapter-num {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <!-- 动态内容 -->
+</div>
+
+<script>
+// ===== 状态 =====
+let state = {
+  health: 100,
+  favor: 50,       // 皇帝宠爱
+  wisdom: 50,      // 智谋
+  beauty: 50,      // 容貌
+  allies: 0,       // 盟友
+  enemies: 0,      // 敌人
+  day: 1,
+  history: [],     // 选择历史
+  alive: true,
+  ended: false
+};
+
+// ===== 场景数据（预制内容） =====
+const SCENES = {
+  start: {
+    id: 'start',
+    title: '初入深宫',
+    text: '你被选中入宫，站在巍峨的宫门前。掌事嬷嬷冷冷地打量你，其他秀女或紧张或高傲。选秀即将开始，这是你在宫中立足的第一步。',
+    choices: [
+      { text: '低调隐忍，不引人注目', hint: '安全，但难获关注', effects: { wisdom: +10, favor: -5 }, next: 'selection_day' },
+      { text: '精心打扮，一鸣惊人', hint: '高风险高回报', effects: { beauty: +20, favor: +15, enemies: +1 }, next: 'selection_day' },
+      { text: '暗中观察其他秀女，收集情报', hint: '需要时间，但更稳妥', effects: { wisdom: +15, allies: +1 }, next: 'selection_day' }
+    ]
+  },
+
+  selection_day: {
+    id: 'selection_day',
+    title: '选秀之日',
+    text: '殿选之日，皇后和皇帝高坐。轮到你时，你看到贵妃的眼神带着审视。皇帝似乎对你有些兴趣，但皇后面色不悦。',
+    choices: [
+      { text: '展现才艺，吟诗一首', hint: '需要智慧', effects: { favor: +20, wisdom: +5 }, next: 'first_night' },
+      { text: '谦卑有礼，不说多余的话', hint: '稳妥之选', effects: { favor: +5, wisdom: +10 }, next: 'first_night' },
+      { text: '故意犯错，引起同情', hint: '险中求胜', effects: { favor: +10, beauty: +5 }, next: 'first_night', randomCheck: { type: 'dice', threshold: 0.5, successNext: 'first_night', failNext: 'punished' } }
+    ]
+  },
+
+  punished: {
+    id: 'punished',
+    title: '殿前失仪',
+    text: '你的"犯错"被皇后视为挑衅。她当场斥责你殿前失仪，罚你跪两个时辰。其他秀女窃笑，你的名声一落千丈。',
+    choices: [
+      { text: '咬牙忍受，暗自记下', hint: '', effects: { health: -20, wisdom: +10, enemies: +2 }, next: 'first_night' },
+      { text: '哭着求饶，希望皇后心软', hint: '', effects: { health: -30, favor: -10, beauty: -5 }, next: 'first_night' }
+    ]
+  },
+
+  first_night: {
+    id: 'first_night',
+    title: '初入寝宫',
+    text: '你被封为答应，住进了偏僻的永巷。今夜是皇帝翻牌子的日子。太监来传话：皇帝今晚召见的是贵妃，但明日或许会轮到你。',
+    choices: [
+      { text: '送些小礼物拉拢太监', hint: '投资未来', effects: { allies: +1, wisdom: +5 }, next: 'morning_routine' },
+      { text: '早睡养足精神，等待召见', hint: '被动等待', effects: { health: +10, favor: +5 }, next: 'morning_routine' },
+      { text: '去花园散步，或许能偶遇皇帝', hint: '铤而走险', effects: { beauty: +10, favor: +15, enemies: +1 }, next: 'garden_encounter' }
+    ]
+  },
+
+  garden_encounter: {
+    id: 'garden_encounter',
+    title: '御花园偶遇',
+    text: '你在花园中撞见皇帝独自散步。他注意到你，问你是谁家的。你心跳加速，这是千载难逢的机会。',
+    choices: [
+      { text: '从容回答，不卑不亢', hint: '最佳表现', effects: { favor: +25, wisdom: +10 }, next: 'morning_routine' },
+      { text: '故意跌倒，引起怜惜', hint: '太做作可能适得其反', effects: { favor: +10, beauty: +5 }, next: 'morning_routine', randomCheck: { type: 'dice', threshold: 0.6, successNext: 'morning_routine', failNext: 'clumsy_fall' } },
+      { text: '行礼告退，不留恋', hint: '欲擒故纵', effects: { favor: +15, wisdom: +15 }, next: 'morning_routine' }
+    ]
+  },
+
+  clumsy_fall: {
+    id: 'clumsy_fall',
+    title: '弄巧成拙',
+    text: '你跌倒的姿势过于刻意，皇帝眉头微皱。一旁的贵妃恰好路过，冷笑道："这届秀女真是花样百出。"皇帝摆摆手让你退下。',
+    choices: [
+      { text: '狼狈退下', hint: '', effects: { favor: -10, enemies: +1, beauty: -5 }, next: 'morning_routine' }
+    ]
+  },
+
+  morning_routine: {
+    id: 'morning_routine',
+    title: '晨昏定省',
+    text: '每日清晨，嫔妃都要向皇后请安。今日请安时，贵妃故意提起昨日有人"偶遇"圣驾的事，目光若有若无地扫向你。',
+    choices: [
+      { text: '保持沉默，装傻充愣', hint: '不表态最安全', effects: { wisdom: +10 }, next: 'poison_rumors' },
+      { text: '反将一军，暗示贵妃小题大做', hint: '高风险', effects: { enemies: +2, favor: +5 }, next: 'poison_rumors', deathCheck: { attr: 'wisdom', threshold: 60, failText: '你的反击太拙劣，被贵妃当场揭穿，皇后以"以下犯上"为由将你打入冷宫。' } },
+      { text: '主动示好贵妃，表示愿意效劳', hint: '投靠势力', effects: { allies: +1, enemies: -1, favor: -5 }, next: 'poison_rumors' }
+    ]
+  },
+
+  poison_rumors: {
+    id: 'poison_rumors',
+    title: '风波暗涌',
+    text: '宫中突然传出你"使用媚术"的谣言。你的膳食被人动了手脚，今日午膳后腹痛难忍。',
+    choices: [
+      { text: '找太医诊治，静观其变', hint: '稳妥', effects: { health: -10, wisdom: +10 }, next: 'investigate' },
+      { text: '大闹一场，逼皇后查出真凶', hint: '危险', effects: { health: -20, enemies: +2 }, next: 'investigate', deathCheck: { attr: 'favor', threshold: 50, failText: '皇后以"扰乱宫闱"为由罚你禁足。禁足期间你被人毒杀，死得不明不白。' } },
+      { text: '将计就计，假装病情加重', hint: '引蛇出洞', effects: { health: -5, wisdom: +15, allies: +1 }, next: 'investigate' }
+    ]
+  },
+
+  investigate: {
+    id: 'investigate',
+    title: '真相浮现',
+    text: '你查出下毒之人是贵妃的贴身宫女。你手中有了把柄，但如何运用是个难题。',
+    choices: [
+      { text: '直接禀告皇后，揭发贵妃', hint: '正面硬刚', effects: { favor: +10, enemies: +3 }, next: 'showdown' },
+      { text: '暗中要挟贵妃，换取她的支持', hint: '与虎谋皮', effects: { allies: +2, enemies: +1, wisdom: +10 }, next: 'showdown' },
+      { text: '按兵不动，留作日后底牌', hint: '深谋远虑', effects: { wisdom: +15 }, next: 'showdown' }
+    ]
+  },
+
+  showdown: {
+    id: 'showdown',
+    title: '最终章·大结局',
+    text: '皇帝突然病重，宫中暗流涌动。皇后、贵妃、各方势力蠢蠢欲动。这是你命运的转折点。',
+    choices: [
+      { text: '站在皇后一边', hint: '正宫之位', effects: {}, next: 'ending', endingType: 'queen' },
+      { text: '扶持自己看好的皇子', hint: '风险投资', effects: {}, next: 'ending', endingType: 'regent' },
+      { text: '暗中联络外臣，准备出宫', hint: '全身而退', effects: {}, next: 'ending', endingType: 'escape' }
+    ]
+  },
+
+  ending: {
+    id: 'ending',
+    title: '大结局',
+    text: '', // 动态生成
+    choices: []
+  }
+};
+
+// ===== 结局判定 =====
+function calcEnding(endingType) {
+  const s = state;
+  let title, desc, scores = [];
+
+  // 基础评分
+  scores.push({ label: '生存天数', value: s.day, max: 10 });
+  scores.push({ label: '皇帝宠爱', value: s.favor, max: 100 });
+  scores.push({ label: '智谋', value: s.wisdom, max: 100 });
+  scores.push({ label: '容貌', value: s.beauty, max: 100 });
+  scores.push({ label: '盟友', value: s.allies, max: 10 });
+  scores.push({ label: '敌人', value: -s.enemies, max: 0 });
+
+  // 结局描述
+  if (endingType === 'queen') {
+    if (s.favor >= 70 && s.wisdom >= 60) {
+      title = '母仪天下';
+      desc = '你凭借智慧与宠爱，在皇后病逝后被立为新后。你站在这深宫的最高处，却发现自己早已不是当年的少女。';
+      scores.push({ label: '结局加成', value: 30, max: 30 });
+    } else if (s.favor >= 40) {
+      title = '贵妃之路';
+      desc = '你成为贵妃，一人之下万人之上。但你知道，这个位置随时可能被下一个"你"取代。';
+      scores.push({ label: '结局加成', value: 15, max: 30 });
+    } else {
+      title = '囚凤';
+      desc = '你被选为继后，但皇帝从不临幸。你守着空空的凤冠，在这深宫中慢慢老去。';
+      scores.push({ label: '结局加成', value: 5, max: 30 });
+    }
+  } else if (endingType === 'regent') {
+    if (s.wisdom >= 70 && s.allies >= 3) {
+      title = '垂帘听政';
+      desc = '年幼的皇子继位，你以太后之名垂帘听政。这天下，终究握在了你的手中。';
+      scores.push({ label: '结局加成', value: 35, max: 35 });
+    } else {
+      title = '陪葬';
+      desc = '你看错了人。新帝登基后第一件事，就是让你为先帝陪葬。';
+      scores.push({ label: '结局加成', value: -20, max: 35 });
+      s.health = 0;
+    }
+  } else {
+    if (s.wisdom >= 60 && s.beauty >= 50) {
+      title = '归隐山林';
+      desc = '你设计假死，带着积蓄远走他乡。多年后，有人在江南小镇看到一位美丽的老板娘，她的眼角有一颗泪痣。';
+      scores.push({ label: '结局加成', value: 25, max: 25 });
+    } else {
+      title = '死于非命';
+      desc = '你的逃跑计划被人出卖。禁军追上你时，你选择了跳崖。';
+      scores.push({ label: '结局加成', value: -10, max: 25 });
+      s.health = 0;
+    }
+  }
+
+  // 计算综合评分
+  let total = 0;
+  for (const sc of scores) total += Math.max(0, sc.value);
+  const maxTotal = scores.reduce((a, b) => a + b.max, 0);
+  const percentage = Math.round((total / maxTotal) * 100);
+
+  let grade;
+  if (percentage >= 90) grade = 'S';
+  else if (percentage >= 75) grade = 'A';
+  else if (percentage >= 60) grade = 'B';
+  else if (percentage >= 40) grade = 'C';
+  else grade = 'D';
+
+  return { title, desc, scores, total, percentage, grade };
+}
+
+// ===== 渲染 =====
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+
+  if (!state.alive) {
+    renderDeath(app);
+    return;
+  }
+  if (state.ended) {
+    renderResult(app);
+    return;
+  }
+
+  const currentScene = SCENES[state.currentScene || 'start'];
+  state.currentScene = currentScene.id;
+
+  // 章节号
+  const chapterDiv = document.createElement('div');
+  chapterDiv.className = 'chapter-num';
+  chapterDiv.textContent = `第 ${state.day} 日`;
+  app.appendChild(chapterDiv);
+
+  // 标题
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'scene-title';
+  titleDiv.textContent = currentScene.title;
+  app.appendChild(titleDiv);
+
+  // 状态栏
+  const statusDiv = document.createElement('div');
+  statusDiv.className = 'status-bar';
+  statusDiv.innerHTML = `
+    <div class="status-item">宠爱 <span class="val">${state.favor}</span></div>
+    <div class="status-item">智谋 <span class="val">${state.wisdom}</span></div>
+    <div class="status-item">容貌 <span class="val">${state.beauty}</span></div>
+    <div class="status-item">盟友 <span class="val">${state.allies}</span></div>
+    <div class="status-item">敌人 <span class="val">${state.enemies}</span></div>
+  `;
+  app.appendChild(statusDiv);
+
+  // 故事文本
+  const textDiv = document.createElement('div');
+  textDiv.className = 'story-text fade-in';
+  textDiv.textContent = currentScene.text;
+  app.appendChild(textDiv);
+
+  // 选项
+  const choicesDiv = document.createElement('div');
+  choicesDiv.className = 'choices';
+  for (const choice of currentScene.choices) {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn fade-in';
+    btn.innerHTML = `${choice.text}${choice.hint ? `<span class="tag">${choice.hint}</span>` : ''}`;
+    btn.onclick = () => makeChoice(choice);
+    choicesDiv.appendChild(btn);
+  }
+  app.appendChild(choicesDiv);
+}
+
+function makeChoice(choice) {
+  state.history.push(choice.text);
+  state.day++;
+
+  // 应用效果
+  if (choice.effects) {
+    for (const [key, val] of Object.entries(choice.effects)) {
+      if (key in state) state[key] += val;
+    }
+  }
+
+  // 死亡检查
+  if (choice.deathCheck) {
+    if (state[choice.deathCheck.attr] < choice.deathCheck.threshold) {
+      state.alive = false;
+      state.deathText = choice.deathCheck.failText;
+      render();
+      return;
+    }
+  }
+
+  // 随机检查
+  let nextScene = choice.next;
+  if (choice.randomCheck) {
+    const roll = Math.random();
+    if (roll < choice.randomCheck.threshold) {
+      nextScene = choice.randomCheck.successNext;
+    } else {
+      nextScene = choice.randomCheck.failNext;
+    }
+  }
+
+  // 结局
+  if (nextScene === 'ending') {
+    state.ended = true;
+    state.endingType = choice.endingType;
+  }
+
+  state.currentScene = nextScene;
+  render();
+}
+
+function renderDeath(app) {
+  app.innerHTML = `
+    <div class="death-screen fade-in">
+      <h2>香消玉殒</h2>
+      <p style="font-size:16px;line-height:1.8;margin-bottom:20px;">${state.deathText || '你在这深宫中失去了生命，如花般凋零。'}</p>
+      <div class="result-card">
+        <div class="label">存活天数</div>
+        <div class="value">${state.day} 天</div>
+        <div class="label">最终宠爱</div>
+        <div class="value">${state.favor}</div>
+      </div>
+      <button class="restart-btn" onclick="restart()">重新开始</button>
+    </div>
+  `;
+}
+
+function renderResult(app) {
+  const result = calcEnding(state.endingType);
+  let scoresHtml = '';
+  for (const sc of result.scores) {
+    scoresHtml += `
+      <div class="label">${sc.label}</div>
+      <div class="value">${sc.value}${sc.max ? ` / ${sc.max}` : ''}</div>
+    `;
+  }
+
+  app.innerHTML = `
+    <div class="result-screen fade-in">
+      <h2>${result.title}</h2>
+      <p style="font-size:14px;color:#999;margin-bottom:8px;">综合评价</p>
+      <p style="font-size:48px;font-weight:bold;color:#e8c547;margin-bottom:20px;">${result.grade}</p>
+      <p style="font-size:16px;line-height:1.8;margin-bottom:20px;">${result.desc}</p>
+      <div class="result-card">
+        ${scoresHtml}
+        <div class="label" style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;">综合得分</div>
+        <div class="value">${result.percentage}%</div>
+      </div>
+      <button class="restart-btn" onclick="restart()">再穿一次</button>
+    </div>
+  `;
+}
+
+function restart() {
+  state = {
+    health: 100,
+    favor: 50,
+    wisdom: 50,
+    beauty: 50,
+    allies: 0,
+    enemies: 0,
+    day: 1,
+    history: [],
+    alive: true,
+    ended: false,
+    currentScene: 'start'
+  };
+  render();
+}
+
+// 初始化
+render();
+</script>
+</body>
+</html>

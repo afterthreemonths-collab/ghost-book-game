@@ -1,0 +1,28 @@
+{
+  "miniprogramRoot": "",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "compileHotReLoad": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "condition": false
+  },
+  "compileType": "game",
+  "appid": "wx2dafc24b9b26212b",
+  "projectname": "ghost-book-simulator",
+  "condition": {},
+  "libVersion": "3.15.2",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
+}
