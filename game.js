@@ -51,8 +51,6 @@ const app = {
   ending: null,
   score: null,
   isFinished: false,
-  flashMessage: '',
-  flashTimer: 0,
   pressedRegionId: null,
   chapterLabel: ''
 };
@@ -69,10 +67,10 @@ function chapterLabelFromScene(scene) {
   return labels[scene.chapter] || '宫斗本';
 }
 
-function syncFromView(view) {
+function syncFromView(view, textPrefix) {
   app.state = view.state;
   app.scene = view.scene;
-  app.storyText = view.text;
+  app.storyText = textPrefix ? `${textPrefix}\n\n${view.text}` : view.text;
   app.choices = view.choices;
   app.ending = view.ending;
   app.score = view.score;
@@ -83,9 +81,7 @@ function syncFromView(view) {
 function bootBook() {
   const state = startBook(app.book);
   const view = enterScene(app.book, state);
-  syncFromView(view);
-  app.flashMessage = '';
-  app.flashTimer = 0;
+  syncFromView(view, '');
 }
 
 function handleRegionTap(region) {
@@ -96,9 +92,8 @@ function handleRegionTap(region) {
 
   const transition = choose(app.book, app.state, region.id);
   const view = enterScene(app.book, transition.state);
-  syncFromView(view);
-  app.flashMessage = transition.outcome.textAfterChoice || '';
-  app.flashTimer = app.flashMessage ? 1.6 : 0;
+  const textPrefix = transition.outcome ? transition.outcome.textAfterChoice : '';
+  syncFromView(view, textPrefix);
 }
 
 function showFatalError(error) {
@@ -117,13 +112,6 @@ input.onTap = (region) => {
 
 const loop = new GameLoop({
   update(dt) {
-    if (app.flashTimer > 0) {
-      app.flashTimer = Math.max(0, app.flashTimer - dt);
-      if (app.flashTimer === 0) {
-        app.flashMessage = '';
-      }
-    }
-
     app.pressedRegionId = input.getPressedRegionId();
   },
   render() {

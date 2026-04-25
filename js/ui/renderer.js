@@ -165,24 +165,6 @@ function renderStoryScreen(ctx, app, metrics) {
 
   let currentTop = statsBottom + 8;
 
-  if (app.flashMessage) {
-    drawRoundedRect(
-      ctx,
-      layout.padding,
-      currentTop,
-      layout.width - layout.padding * 2,
-      42,
-      14,
-      COLORS.accentSoft,
-      null
-    );
-    ctx.fillStyle = COLORS.accent;
-    ctx.font = '13px sans-serif';
-    const flashLines = wrapText(ctx, app.flashMessage, layout.width - layout.padding * 2 - 24);
-    drawTextLines(ctx, flashLines.slice(0, 2), layout.padding + 12, currentTop + 18, 16, COLORS.accent);
-    currentTop += 52;
-  }
-
   const storyWidth = layout.width - layout.padding * 2;
   ctx.font = '16px sans-serif';
   const storyLines = wrapText(ctx, app.storyText, storyWidth - 28);
