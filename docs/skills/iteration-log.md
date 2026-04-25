@@ -19,6 +19,46 @@
 - 每次出现影响项目理解的重要变更，都同步更新根目录说明、路线图或迭代日志
 - 后续围绕剧本、交互、分享、配图的讨论，也要落到项目文档中
 
+## 2026-04-25
+
+### 背景
+
+从 main 拉出 `feature/full-story-experience` 分支，目标：完成一个从头到尾体验不错的故事，并把创作过程抽象为可复用流程。
+
+### 本轮完成
+
+- **修复结局触发分布问题**：
+  - `gifted_poison` suspicion 阈值从 65 降至 50
+  - `discarded_pawn` princeFaction 条件从 `<=1` 修复为 `<=2`（原条件实际不可达）
+  - `purged_after_scheme` suspicion 降至 45，priority 提升至 77
+  - `cold_palace_decline` 去掉与 empress 路线互斥的 favor 条件，priority 提升至 61
+  - `favored_noble_consort` favor 阈值从 78 降至 68，beauty 从 58 降至 52
+  - **结果**：500次模拟中14个结局全部触发（之前4个结局从未触发）
+
+- **补全回响矩阵落地**：
+  - `offendedConsort` → morning_greeting 新增文本变体（贵妃态度更冷）
+  - `observedRivals` → emperor_falls_ill 新增判断信息文本变体
+  - `hadGardenEncounter` → rumor_spreads 新增谣言文本变体
+  - `foundPoisonClue` → blackmail_consort 新增把柄感文本变体
+  - `hasConsortLeverage` → blackmail_consort 新增筹码感文本变体
+
+- **验证工具增强**：
+  - verify-book.js 增加结局分布百分比、覆盖率、max/min ratio 检查
+
+### 本轮发现
+
+- 结局分布失衡的根因往往不是"条件太严"，而是：
+  1. 条件与数值设计互斥（如 empress<=-2 与 favor<45 在 empress 路线中几乎不可同时满足）
+  2. 低优先级结局被高优先级结局覆盖（如 cold_palace_decline 被 peaceful_survivor 覆盖）
+  3. 条件实际上不可达（如 discarded_pawn 的 princeFaction<=1 实际最小为2）
+- 500次随机模拟可能不足以发现低概率结局，需要配合条件可达性分析
+
+### 后续默认动作
+
+- 每次修改结局条件后，跑 verify-book.js 并检查 never-reached-endings 和 balance-check
+- 结局条件调整时，同时检查优先级覆盖关系
+- 新增回响时，优先在 echo-hub 节点（morning_greeting, rumor_spreads, emperor_falls_ill）添加
+
 ## 2026-04-22
 
 ### 背景

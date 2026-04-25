@@ -35,9 +35,9 @@
 - 类别：`rise`
 - 优先级：80
 - 推荐条件：
-  - `stat:favor>=80`
-  - `relation:emperor>=3`
-  - `stat:beauty>=60`
+  - `stat:favor>=68`
+  - `relation:emperor>=1`
+  - `stat:beauty>=52`
 - 设计意图：
   - 奖励宠爱线，但不一定拥有最高权力
 
@@ -113,7 +113,7 @@
 - 优先级：70
 - 推荐条件：
   - `flag:choseFactionPrince=true`
-  - `relation:princeFaction<1`
+  - `relation:princeFaction<=2`
   - `route:manipulative>=1`
 - 设计意图：
   - 表示投资错误或盟友不稳
@@ -122,13 +122,13 @@
 
 - 标题：反遭清算
 - 类别：`backfire`
-- 优先级：75
+- 优先级：77
 - 推荐条件：
   - `flag:hasConsortLeverage=true`
-  - `stat:suspicion>=60`
-  - `relation:empress<=-1`
+  - `stat:suspicion>=45`
+  - `relation:empress<=0`
 - 设计意图：
-  - 奖惩“拿了把柄却收不住”的玩家
+  - 奖惩”拿了把柄却收不住”的玩家
 
 ## 逃离类
 
@@ -163,11 +163,10 @@
 
 - 标题：冷宫凋零
 - 类别：`fall`
-- 优先级：50
+- 优先级：61
 - 推荐条件：
   - `relation:empress<=-2`
-  - `stat:favor<40`
-  - `stat:health<=40`
+  - `stat:health<=85`
 - 设计意图：
   - 承接失宠且无派系庇护的残局
 
@@ -177,7 +176,7 @@
 - 类别：`death`
 - 优先级：88
 - 推荐条件：
-  - `stat:suspicion>=65`
+  - `stat:suspicion>=50`
 - 设计意图：
   - 高危高权斗路径的明确失败结局
 
@@ -210,6 +209,33 @@
 12. `river_town_retreat`
 13. `cold_palace_decline`
 14. `lonely_old_age`
+
+## 调平建议（2026-04-25 更新）
+
+### 已调平的结局
+
+| 结局 | 原问题 | 修复方式 | 当前触发率（500次模拟） |
+|------|--------|----------|------------------------|
+| `gifted_poison` | suspicion>=65 几乎不可达 | 降至 >=50 | ~1.2% |
+| `discarded_pawn` | princeFaction<=1 实际不可达（最小为2） | 改为 <=2 | ~0.8% |
+| `purged_after_scheme` | suspicion>=62 太严 | 降至 >=45，priority 提至77 | ~0.2% |
+| `cold_palace_decline` | favor<40 与 empress<=-2 互斥；priority 50 被覆盖 | 去掉 favor 条件，priority 提至61 | ~0.6% |
+| `favored_noble_consort` | favor>=78 太难 | 降至 >=68，beauty 降至 >=52 | ~8.6% |
+
+### 调平经验
+
+- 结局条件不可达的三类根因：
+  1. **数值互斥**：某路线的属性变化方向与结局条件相反（如 empress 路线 favor 通常增加，与 favor<40 冲突）
+  2. **优先级覆盖**：低 priority 结局被同路线的更高 priority 结局完全覆盖
+  3. **逻辑不可达**：条件写的是 `<=1` 但实际最小值为 2
+- 每轮调平后必须跑 `node scripts/verify-book.js`，检查 never-reached-endings
+
+### 仍需观察
+
+- `lonely_old_age`：理论上可达，但 500次模拟仍未触发。可能因 peaceful_survivor(60) 覆盖窗口过宽
+- `behind_the_curtain`：触发率 ~2.8%，作为最高 power 结局可以接受
+- `shadow_powerbroker`：触发率 ~25%， prince 路线最宽出口。若后续觉得太高，可增加 route:manipulative>=4 条件
+- `river_town_retreat`：触发率 ~20%，escape 路线最宽出口，合理
 
 ## 调平建议
 
