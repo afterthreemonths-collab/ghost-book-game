@@ -77,6 +77,37 @@
 - 用 `flag + relation + routeTag` 混合驱动回响
 - 用“承接层 + 临场层 + 压力层 + 选项后反馈”提升短节点连贯度
 
+## 创作工具链
+
+当前项目内可用的工具：
+
+- `node scripts/verify-book.js` — 结构校验 + 随机模拟 + 结局分布分析
+- `node scripts/check-echo-matrix.js` — 回响矩阵自动检查
+
+工具使用顺序：
+1. 写内容 → 2. 跑 verify-book.js → 3. 跑 check-echo-matrix.js → 4. 人工检查关键节点 → 5. 继续迭代
+
+## 结局调平 checklist
+
+每次修改结局条件后必须检查：
+
+- [ ] 跑 verify-book.js，确认 never-reached-endings 为空
+- [ ] 检查 balance-check 的 max/min ratio，理想 < 20
+- [ ] 排查"条件逻辑不可达"（如写 `<=1` 但实际最小值为 2）
+- [ ] 排查"数值互斥"（如某路线的属性变化方向与结局条件相反）
+- [ ] 排查"优先级覆盖"（低 priority 结局是否被同路线更高 priority 完全覆盖）
+- [ ] 更新 `docs/specs/2026-04-22-palace-book-01-ending-table.md`
+
+## 回响矩阵落地 checklist
+
+每次新增 flag 时必须完成：
+
+- [ ] 在 echo-hub 节点（morning_greeting, rumor_spreads, emperor_falls_ill）至少添加 1 个文本变体
+- [ ] 在至少 1 个 choice 中添加 showIf 或改变概率
+- [ ] 在至少 1 个结局中体现影响（showIf、priority 或 scoreBonus）
+- [ ] 跑 check-echo-matrix.js 验证
+- [ ] 更新 `docs/specs/2026-04-22-palace-book-01-echo-matrix.md`
+
 ## 下一步如何复用
 
 扩第二本或第二题材时，直接复用：
@@ -85,6 +116,8 @@
 - `js/runtime/story-runner.js`
 - `js/runtime/story-validator.js`
 - `js/ui/renderer.js`
+- `scripts/verify-book.js`
+- `scripts/check-echo-matrix.js`
 
 然后只需要替换或扩展：
 
