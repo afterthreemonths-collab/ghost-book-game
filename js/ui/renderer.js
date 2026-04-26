@@ -70,7 +70,7 @@ function drawTextLines(ctx, lines, x, y, lineHeight, color) {
   });
 }
 
-function drawStatChips(ctx, pet, layout) {
+function drawStatChips(ctx, pet, layout, offsetY = 0) {
   const attr = pet?.attributes || {};
   const labels = [
     ['力量', attr.strength || 0],
@@ -89,7 +89,7 @@ function drawStatChips(ctx, pet, layout) {
     const col = index % 2;
     const row = Math.floor(index / 2);
     const x = layout.padding + col * (chipWidth + 8);
-    const y = layout.statsTop + row * (chipHeight + 8);
+    const y = layout.statsTop + row * (chipHeight + 8) + offsetY;
 
     drawRoundedRect(ctx, x, y, chipWidth, chipHeight, 14, COLORS.chip, null);
     ctx.fillStyle = COLORS.subtext;
@@ -99,6 +99,20 @@ function drawStatChips(ctx, pet, layout) {
   });
 
   return layout.statsTop + Math.ceil(labels.length / 2) * (chipHeight + 8);
+}
+
+function measureChoiceButton(ctx, choice, width) {
+  const textPadding = 16;
+  const isSystem = choice.type === 'system';
+  const prefix = isSystem ? `${choice.systemLabel || ''} ` : '';
+  const displayText = prefix + choice.text;
+
+  ctx.font = '16px sans-serif';
+  const textLines = wrapText(ctx, displayText, width - textPadding * 2);
+  ctx.font = '12px sans-serif';
+  const hintLines = choice.hint ? wrapText(ctx, choice.hint, width - textPadding * 2) : [];
+
+  return 20 + textLines.length * 24 + hintLines.length * 18 + 14;
 }
 
 function drawChoiceButton(ctx, choice, x, y, width, isPressed) {
@@ -111,7 +125,7 @@ function drawChoiceButton(ctx, choice, x, y, width, isPressed) {
   const textLines = wrapText(ctx, displayText, width - textPadding * 2);
   ctx.font = '12px sans-serif';
   const hintLines = choice.hint ? wrapText(ctx, choice.hint, width - textPadding * 2) : [];
-  const height = 20 + textLines.length * 24 + hintLines.length * 18 + 14;
+  const height = measureChoiceButton(ctx, choice, width);
 
   const btnFill = isPressed
     ? (isSystem ? 'rgba(232,197,71,0.35)' : COLORS.buttonPressed)
@@ -245,43 +259,78 @@ function renderStoryScreen(ctx, app, metrics) {
     statsTop: (metrics.safeTop || 0) + 68
   };
 
+  const storyWidth = layout.width - layout.padding * 2;
+
+  // === Phase 1: measure total content height ===
+  let contentBottom = layout.statsTop;
+
+  const attr = app.state.pet?.attributes || {};
+  const chipLabels = [
+    ['力量', attr.strength || 0],
+    ['防御', attr.defense || 0],
+    ['速度', attr.speed || 0],
+    ['灵力', attr.spirit || 0],
+    ['生命', attr.health || 0]
+  ];
+  const chipRows = Math.ceil(chipLabels.length / 2);
+  const chipHeight = 28;
+  const statsBottom = layout.statsTop + chipRows * (chipHeight + 8);
+
+  contentBottom = statsBottom + 8;
+
+  ctx.font = '16px sans-serif';
+  const storyLinesMeasure = wrapText(ctx, app.storyText, storyWidth - 28);
+  const storyHeight = Math.max(120, storyLinesMeasure.length * 26 + 42);
+  contentBottom += storyHeight + 14;
+
+  app.choices.forEach((choice) => {
+    const h = measureChoiceButton(ctx, choice, storyWidth);
+    contentBottom += h + 12;
+  });
+
+  contentBottom += 50; // bottom breathing room
+
+  const maxScroll = Math.max(0, contentBottom - metrics.height + (metrics.safeBottomInset || 0) + 20);
+  app.scrollY = Math.max(0, Math.min(app.scrollY || 0, maxScroll));
+  const sy = -(app.scrollY || 0);
+
+  // === Phase 2: draw with scroll offset ===
   ctx.fillStyle = COLORS.subtext;
   ctx.font = '12px sans-serif';
-  ctx.fillText(app.bookTitle, layout.padding, layout.topInset);
+  ctx.fillText(app.bookTitle, layout.padding, layout.topInset + sy);
 
   ctx.fillStyle = COLORS.accent;
   ctx.font = 'bold 22px sans-serif';
-  ctx.fillText(app.scene.title, layout.padding, layout.topInset + 28);
+  ctx.fillText(app.scene.title, layout.padding, layout.topInset + 28 + sy);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = COLORS.footer;
   ctx.font = '12px sans-serif';
-  ctx.fillText(`第 ${app.state.step + 1} 步`, layout.width - layout.padding, layout.topInset);
+  ctx.fillText(`第 ${app.state.step + 1} 步`, layout.width - layout.padding, layout.topInset + sy);
   ctx.textAlign = 'left';
 
-  const statsBottom = drawStatChips(ctx, app.state.pet, layout);
+  const actualStatsBottom = drawStatChips(ctx, app.state.pet, layout, sy);
 
-  let currentTop = statsBottom + 8;
+  let currentTop = actualStatsBottom + 8;
 
-  const storyWidth = layout.width - layout.padding * 2;
   ctx.font = '16px sans-serif';
   const storyLines = wrapText(ctx, app.storyText, storyWidth - 28);
-  const storyHeight = Math.max(120, storyLines.length * 26 + 42);
+  const storyHeightDraw = Math.max(120, storyLines.length * 26 + 42);
 
-  drawRoundedRect(ctx, layout.padding, currentTop, storyWidth, storyHeight, 18, COLORS.panel, COLORS.panelBorder);
+  drawRoundedRect(ctx, layout.padding, currentTop + sy, storyWidth, storyHeightDraw, 18, COLORS.panel, COLORS.panelBorder);
   ctx.fillStyle = COLORS.subtext;
   ctx.font = '12px sans-serif';
-  ctx.fillText(app.chapterLabel, layout.padding + 16, currentTop + 22);
+  ctx.fillText(app.chapterLabel, layout.padding + 16, currentTop + 22 + sy);
   ctx.font = '16px sans-serif';
-  drawTextLines(ctx, storyLines, layout.padding + 16, currentTop + 48, 24, COLORS.text);
-  currentTop += storyHeight + 14;
+  drawTextLines(ctx, storyLines, layout.padding + 16, currentTop + 48 + sy, 24, COLORS.text);
+  currentTop += storyHeightDraw + 14;
 
   app.choices.forEach((choice) => {
     const region = drawChoiceButton(
       ctx,
       choice,
       layout.padding,
-      currentTop,
+      currentTop + sy,
       storyWidth,
       app.pressedRegionId === choice.id
     );
@@ -291,8 +340,9 @@ function renderStoryScreen(ctx, app, metrics) {
 
   ctx.fillStyle = COLORS.footer;
   ctx.font = '12px sans-serif';
-  ctx.fillText('点击选项推动剧情', layout.padding, metrics.height - 18 - (metrics.safeBottomInset || 0));
+  ctx.fillText('点击选项推动剧情', layout.padding, currentTop + sy);
 
+  // Status button — fixed position, does not scroll
   const sceneTags = app.scene.tags || [];
   const showStatusBtn = !sceneTags.includes('pre-awakening');
 
@@ -382,6 +432,79 @@ function renderEndingScreen(ctx, app, metrics) {
   return regions;
 }
 
+function renderSystemPopup(ctx, app, metrics) {
+  const regions = [];
+  const scene = app.scene || {};
+  const prompt = scene.systemPrompt || {};
+  const title = prompt.title || '系统提示';
+  const text = prompt.text || '';
+
+  // Dark overlay
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+  ctx.fillRect(0, 0, metrics.width, metrics.height);
+
+  const popupPadding = 24;
+  const popupWidth = metrics.width - popupPadding * 2;
+  const popupX = popupPadding;
+  const maxPopupHeight = metrics.height * 0.6;
+
+  ctx.font = 'bold 18px sans-serif';
+  const titleLines = wrapText(ctx, title, popupWidth - 40);
+  ctx.font = '15px sans-serif';
+  const textLines = wrapText(ctx, text, popupWidth - 40);
+
+  const titleH = titleLines.length * 28 + 16;
+  const textH = textLines.length * 24 + 16;
+  const btnH = 48;
+  const popupHeight = Math.min(
+    40 + titleH + textH + btnH + 20,
+    maxPopupHeight
+  );
+  const popupY = (metrics.height - popupHeight) / 2;
+
+  drawRoundedRect(ctx, popupX, popupY, popupWidth, popupHeight, 20, 'rgba(25, 20, 40, 0.98)', COLORS.panelBorder);
+
+  let ty = popupY + 32;
+  ctx.fillStyle = COLORS.accent;
+  ctx.font = 'bold 18px sans-serif';
+  drawTextLines(ctx, titleLines, popupX + 20, ty, 28, COLORS.accent);
+  ty += titleLines.length * 28 + 16;
+
+  ctx.font = '15px sans-serif';
+  drawTextLines(ctx, textLines, popupX + 20, ty, 24, COLORS.text);
+  ty += textLines.length * 24 + 24;
+
+  const btnY = ty;
+  drawRoundedRect(
+    ctx,
+    popupX + 20,
+    btnY,
+    popupWidth - 40,
+    btnH,
+    16,
+    COLORS.accent,
+    null
+  );
+  ctx.fillStyle = '#1d1b24';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('确认激活', popupX + popupWidth / 2, btnY + 31);
+  ctx.textAlign = 'left';
+
+  ctx.restore();
+
+  regions.push({
+    id: 'system_prompt_confirm',
+    x: popupX + 20,
+    y: btnY,
+    w: popupWidth - 40,
+    h: btnH
+  });
+
+  return regions;
+}
+
 function createRenderer(ctx, metrics) {
   return {
     render(app) {
@@ -395,9 +518,16 @@ function createRenderer(ctx, metrics) {
       }
       ctx.fillRect(0, 0, metrics.width, metrics.height);
 
-      return app.isFinished
+      let regions = app.isFinished
         ? renderEndingScreen(ctx, app, metrics)
         : renderStoryScreen(ctx, app, metrics);
+
+      if (app.showSystemPrompt) {
+        const popupRegions = renderSystemPopup(ctx, app, metrics);
+        regions = popupRegions.concat(regions);
+      }
+
+      return regions;
     }
   };
 }

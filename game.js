@@ -53,7 +53,9 @@ const app = {
   isFinished: false,
   pressedRegionId: null,
   chapterLabel: '',
-  showStatusPanel: false
+  showStatusPanel: false,
+  scrollY: 0,
+  showSystemPrompt: false
 };
 
 function chapterLabelFromScene(scene) {
@@ -76,6 +78,14 @@ function syncFromView(view, textPrefix) {
   app.score = view.score;
   app.isFinished = view.isFinished;
   app.chapterLabel = chapterLabelFromScene(view.scene);
+  app.scrollY = 0;
+
+  const scene = view.scene || {};
+  if (scene.systemPrompt && scene.systemPrompt.text) {
+    app.showSystemPrompt = true;
+  } else {
+    app.showSystemPrompt = false;
+  }
 }
 
 function bootBook() {
@@ -85,6 +95,13 @@ function bootBook() {
 }
 
 function handleRegionTap(region) {
+  if (app.showSystemPrompt) {
+    if (region.id === 'system_prompt_confirm') {
+      app.showSystemPrompt = false;
+    }
+    return;
+  }
+
   if (region.id === 'restart') {
     bootBook();
     return;
@@ -118,6 +135,11 @@ input.onTap = (region) => {
   } catch (error) {
     showFatalError(error);
   }
+};
+
+input.onScroll = (dy) => {
+  if (app.showStatusPanel || app.showSystemPrompt) return;
+  app.scrollY = (app.scrollY || 0) + dy;
 };
 
 const loop = new GameLoop({

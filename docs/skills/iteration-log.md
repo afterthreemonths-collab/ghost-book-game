@@ -59,6 +59,44 @@
 - 结局条件调整时，同时检查优先级覆盖关系
 - 新增回响时，优先在 echo-hub 节点（morning_greeting, rumor_spreads, emperor_falls_ill）添加
 
+## 2026-04-26
+
+### 背景
+
+继续推进 `feature/full-story-experience` 分支，完成系统流首册 Demo 的交互体验闭环。
+
+### 本轮完成
+
+- **页面滚动支持**：
+  - `js/input.js` 新增 `touchMove` 检测与 `onScroll` 回调
+  - `js/ui/renderer.js` 的 `renderStoryScreen` 支持 `app.scrollY` 偏移，内容超长时可上下滑动
+  - 滚动范围自动限制在内容高度与屏幕高度之间
+  - 状态按钮固定不随内容滚动
+
+- **系统弹窗机制**：
+  - 场景数据新增 `systemPrompt` 字段（`title` + `text`）
+  - `game.js` 的 `syncFromView` 自动检测并设置 `showSystemPrompt`
+  - `js/ui/renderer.js` 新增 `renderSystemPopup`：半透明遮罩 + 居中弹窗 + 金色确认按钮
+  - 弹窗激活时禁用底层滚动和选择交互
+  - `game.js` 的 `handleRegionTap` 优先处理弹窗关闭，避免穿透到剧情选项
+
+- **系统流 Demo 数据补全**：
+  - `js/data/books/system-pet-01.js` 为 3 个系统选择场景添加 `systemPrompt`：
+    - `first_system_event`（当众羞辱）：介绍系统规则与选项梯度
+    - `classroom_system`（课堂冲突）：提示本选择影响实战考核
+    - `bear_choice`（铁背熊抉择）：提示影响进化路线
+
+### 框架优化点
+
+- 选项按钮高度计算从 inline 提取为 `measureChoiceButton`，供预计算阶段复用
+- `drawStatChips` 增加可选 `offsetY` 参数，支持滚动偏移
+- `createRenderer.render` 返回 regions 时，弹窗 regions 前置，确保点击优先级
+
+### 后续默认动作
+
+- 任何带 `systemPrompt` 的场景，进入时自动弹出蒙层弹窗
+- 滚动实现遵循"先测高再限制再绘制"的三阶段模式，后续类似需求可直接复用
+
 ## 2026-04-25 后续
 
 ### 方向调整
