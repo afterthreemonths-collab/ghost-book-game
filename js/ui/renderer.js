@@ -70,13 +70,14 @@ function drawTextLines(ctx, lines, x, y, lineHeight, color) {
   });
 }
 
-function drawStatChips(ctx, stats, layout) {
+function drawStatChips(ctx, pet, layout) {
+  const attr = pet?.attributes || {};
   const labels = [
-    ['宠爱', stats.favor],
-    ['智谋', stats.wisdom],
-    ['容貌', stats.beauty],
-    ['体魄', stats.health],
-    ['风声', stats.suspicion]
+    ['力量', attr.strength || 0],
+    ['防御', attr.defense || 0],
+    ['速度', attr.speed || 0],
+    ['灵力', attr.spirit || 0],
+    ['生命', attr.health || 0]
   ];
 
   const chipWidth = (layout.width - layout.padding * 2 - 8) / 2;
@@ -89,13 +90,12 @@ function drawStatChips(ctx, stats, layout) {
     const row = Math.floor(index / 2);
     const x = layout.padding + col * (chipWidth + 8);
     const y = layout.statsTop + row * (chipHeight + 8);
-    const width = index === labels.length - 1 ? chipWidth : chipWidth;
 
-    drawRoundedRect(ctx, x, y, width, chipHeight, 14, COLORS.chip, null);
+    drawRoundedRect(ctx, x, y, chipWidth, chipHeight, 14, COLORS.chip, null);
     ctx.fillStyle = COLORS.subtext;
     ctx.fillText(entry[0], x + 12, y + 18);
-    ctx.fillStyle = entry[0] === '风声' ? COLORS.danger : COLORS.accent;
-    ctx.fillText(String(entry[1]), x + width - 26, y + 18);
+    ctx.fillStyle = COLORS.accent;
+    ctx.fillText(String(entry[1]), x + chipWidth - 32, y + 18);
   });
 
   return layout.statsTop + Math.ceil(labels.length / 2) * (chipHeight + 8);
@@ -103,25 +103,26 @@ function drawStatChips(ctx, stats, layout) {
 
 function drawChoiceButton(ctx, choice, x, y, width, isPressed) {
   const textPadding = 16;
+  const isSystem = choice.type === 'system';
+  const prefix = isSystem ? `${choice.systemLabel || ''} ` : '';
+  const displayText = prefix + choice.text;
+
   ctx.font = '16px sans-serif';
-  const textLines = wrapText(ctx, choice.text, width - textPadding * 2);
+  const textLines = wrapText(ctx, displayText, width - textPadding * 2);
   ctx.font = '12px sans-serif';
   const hintLines = choice.hint ? wrapText(ctx, choice.hint, width - textPadding * 2) : [];
   const height = 20 + textLines.length * 24 + hintLines.length * 18 + 14;
 
-  drawRoundedRect(
-    ctx,
-    x,
-    y,
-    width,
-    height,
-    16,
-    isPressed ? COLORS.buttonPressed : COLORS.button,
-    COLORS.buttonBorder
-  );
+  const btnFill = isPressed
+    ? (isSystem ? 'rgba(232,197,71,0.35)' : COLORS.buttonPressed)
+    : (isSystem ? 'rgba(232,197,71,0.14)' : COLORS.button);
+  const btnBorder = isSystem ? 'rgba(232,197,71,0.7)' : COLORS.buttonBorder;
+
+  drawRoundedRect(ctx, x, y, width, height, 16, btnFill, btnBorder);
 
   ctx.font = '16px sans-serif';
-  drawTextLines(ctx, textLines, x + textPadding, y + 24, 24, COLORS.text);
+  const textColor = isSystem ? '#f5e6a3' : COLORS.text;
+  drawTextLines(ctx, textLines, x + textPadding, y + 24, 24, textColor);
 
   if (hintLines.length > 0) {
     ctx.font = '12px sans-serif';
@@ -134,6 +135,103 @@ function drawChoiceButton(ctx, choice, x, y, width, isPressed) {
     x,
     y,
     w: width
+  };
+}
+
+function renderStatusPanel(ctx, app, layout) {
+  const panelW = layout.width - layout.padding * 2;
+  const panelH = layout.height - layout.padding * 2 - (layout.topInset || 0);
+  const panelX = layout.padding;
+  const panelY = layout.topInset || layout.padding;
+
+  ctx.save();
+  drawRoundedRect(ctx, panelX, panelY, panelW, panelH, 20, 'rgba(16,14,28,0.96)', COLORS.panelBorder);
+
+  ctx.fillStyle = COLORS.accent;
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('状态面板', panelX + 20, panelY + 36);
+
+  ctx.fillStyle = COLORS.subtext;
+  ctx.font = '12px sans-serif';
+  ctx.fillText('点击空白处关闭', panelX + panelW - 110, panelY + 36);
+
+  let y = panelY + 60;
+  const pet = app.state.pet;
+
+  if (pet) {
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText(`${pet.name}  Lv.${pet.level || 1}`, panelX + 20, y);
+    y += 26;
+
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = COLORS.subtext;
+    const stageLabels = ['初始形态', '一阶进化', '二阶进化'];
+    ctx.fillText(`进化: ${stageLabels[pet.evolutionStage || 0] || '未知'}`, panelX + 20, y);
+    y += 22;
+    ctx.fillText(`体型: ${pet.size || 'small'}`, panelX + 20, y);
+    y += 32;
+
+    ctx.fillStyle = COLORS.accent;
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('属性', panelX + 20, y);
+    y += 22;
+
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = COLORS.subtext;
+    const attrs = pet.attributes || {};
+    const attrList = [
+      ['力量', attrs.strength || 0],
+      ['防御', attrs.defense || 0],
+      ['速度', attrs.speed || 0],
+      ['灵力', attrs.spirit || 0],
+      ['生命', attrs.health || 0]
+    ];
+    attrList.forEach(([label, val]) => {
+      ctx.fillStyle = COLORS.subtext;
+      ctx.fillText(`${label}:`, panelX + 20, y);
+      ctx.fillStyle = COLORS.accent;
+      ctx.fillText(String(val), panelX + 80, y);
+      y += 20;
+    });
+
+    y += 10;
+    if (pet.talents && pet.talents.length > 0) {
+      ctx.fillStyle = COLORS.accent;
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText('天赋', panelX + 20, y);
+      y += 22;
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = COLORS.subtext;
+      pet.talents.forEach((t) => {
+        ctx.fillText(`· ${t}`, panelX + 24, y);
+        y += 18;
+      });
+    }
+
+    if (pet.skills && pet.skills.length > 0) {
+      y += 6;
+      ctx.fillStyle = COLORS.accent;
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText('技能', panelX + 20, y);
+      y += 22;
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = COLORS.subtext;
+      pet.skills.forEach((s) => {
+        ctx.fillText(`· ${s}`, panelX + 24, y);
+        y += 18;
+      });
+    }
+  }
+
+  ctx.restore();
+
+  return {
+    id: 'status_panel_bg',
+    x: panelX,
+    y: panelY,
+    w: panelW,
+    h: panelH
   };
 }
 
@@ -161,7 +259,7 @@ function renderStoryScreen(ctx, app, metrics) {
   ctx.fillText(`第 ${app.state.step + 1} 步`, layout.width - layout.padding, layout.topInset);
   ctx.textAlign = 'left';
 
-  const statsBottom = drawStatChips(ctx, app.state.stats, layout);
+  const statsBottom = drawStatChips(ctx, app.state.pet, layout);
 
   let currentTop = statsBottom + 8;
 
@@ -194,6 +292,21 @@ function renderStoryScreen(ctx, app, metrics) {
   ctx.fillStyle = COLORS.footer;
   ctx.font = '12px sans-serif';
   ctx.fillText('点击选项推动剧情', layout.padding, metrics.height - 18 - (metrics.safeBottomInset || 0));
+
+  const statusBtnW = 60;
+  const statusBtnH = 28;
+  const statusBtnX = layout.width - layout.padding - statusBtnW;
+  const statusBtnY = layout.topInset + 32;
+  drawRoundedRect(ctx, statusBtnX, statusBtnY, statusBtnW, statusBtnH, 14, COLORS.chip, COLORS.accentSoft);
+  ctx.fillStyle = COLORS.accent;
+  ctx.font = '12px sans-serif';
+  ctx.fillText('状态', statusBtnX + 16, statusBtnY + 19);
+  regions.push({ id: 'toggle_status', x: statusBtnX, y: statusBtnY, w: statusBtnW, h: statusBtnH });
+
+  if (app.showStatusPanel) {
+    const panelRegion = renderStatusPanel(ctx, app, layout);
+    regions.push(panelRegion);
+  }
 
   return regions;
 }

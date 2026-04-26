@@ -12,7 +12,12 @@ const CONDITION_PREFIX = {
   RELATION: 'relation',
   FLAG: 'flag',
   ROUTE: 'route',
-  HISTORY: 'history'
+  HISTORY: 'history',
+  TALENT: 'talent',
+  SKILL: 'skill',
+  PET: 'pet',
+  PLAYER: 'player',
+  SYSTEM: 'system'
 };
 
 function clonePlainObject(source) {
@@ -25,6 +30,9 @@ function createInitialState(stateModel) {
     relations: clonePlainObject(stateModel.relations || {}),
     flags: clonePlainObject(stateModel.flags || {}),
     routeTags: clonePlainObject(stateModel.routeTags || {}),
+    player: clonePlainObject(stateModel.player || {}),
+    pet: clonePlainObject(stateModel.pet || {}),
+    system: clonePlainObject(stateModel.system || {}),
     step: 0,
     currentSceneId: null,
     endingId: null,

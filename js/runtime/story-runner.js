@@ -112,12 +112,37 @@ function applyFlagChanges(flags, flagKeys, nextValue) {
   });
 }
 
+function applyArrayAdd(targetArray, items) {
+  if (!items || !targetArray) return;
+  items.forEach((item) => {
+    if (!targetArray.includes(item)) {
+      targetArray.push(item);
+    }
+  });
+}
+
+function applyPetSizeChange(pet, newSize) {
+  if (!pet || !newSize) return;
+  pet.size = newSize;
+}
+
 function applyEffects(state, effects) {
   if (!effects) return state;
 
   applyValueMap(state.stats, effects.stats);
   applyValueMap(state.relations, effects.relations);
   applyValueMap(state.routeTags, effects.routeTags);
+  applyValueMap(state.player, effects.player);
+  applyValueMap(state.system, effects.system);
+
+  if (state.pet) {
+    applyValueMap(state.pet, effects.pet);
+    applyValueMap(state.pet.attributes, effects.petAttributes);
+    applyArrayAdd(state.pet.talents, effects.talentsAdd);
+    applyArrayAdd(state.pet.skills, effects.skillsAdd);
+    applyPetSizeChange(state.pet, effects.petSize);
+  }
+
   applyFlagChanges(state.flags, effects.flagsOn, true);
   applyFlagChanges(state.flags, effects.flagsOff, false);
 

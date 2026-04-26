@@ -1,5 +1,5 @@
 function getBucketAndKey(expression) {
-  const match = expression.match(/^(stat|relation|flag|route|history):([^<>=]+)(>=|<=|>|<|=)(.+)$/);
+  const match = expression.match(/^(stat|relation|flag|route|history|talent|skill|pet|player|system):([^<>=]+)(>=|<=|>|<|=)(.+)$/);
 
   if (!match) {
     throw new Error(`Invalid condition expression: ${expression}`);
@@ -22,12 +22,21 @@ function normalizeExpectedValue(rawValue) {
   return rawValue;
 }
 
+function getNestedValue(obj, path) {
+  return path.split('.').reduce((current, key) => current?.[key], obj);
+}
+
 function getActualValue(state, bucket, key) {
   if (bucket === 'stat') return state.stats[key];
   if (bucket === 'relation') return state.relations[key];
   if (bucket === 'flag') return state.flags[key];
   if (bucket === 'route') return state.routeTags[key];
   if (bucket === 'history') return state.history[key];
+  if (bucket === 'talent') return state.pet?.talents?.includes(key);
+  if (bucket === 'skill') return state.pet?.skills?.includes(key);
+  if (bucket === 'pet') return getNestedValue(state.pet, key);
+  if (bucket === 'player') return getNestedValue(state.player, key);
+  if (bucket === 'system') return getNestedValue(state.system, key);
 
   return undefined;
 }

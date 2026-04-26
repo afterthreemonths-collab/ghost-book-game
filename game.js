@@ -4,7 +4,7 @@ const { GameLoop } = require('./js/loop');
 const { InputManager } = require('./js/input');
 const { createRenderer } = require('./js/ui/renderer');
 const { renderErrorScreen } = require('./js/ui/error-screen');
-const { palaceBook01 } = require('./js/data/books/index');
+const { systemPetBook01 } = require('./js/data/books/index');
 const { startBook, enterScene, choose } = require('./js/runtime/story-runner');
 
 const systemInfo = wx.getSystemInfoSync();
@@ -42,8 +42,8 @@ const renderer = createRenderer(ctx, metrics);
 const input = new InputManager();
 
 const app = {
-  book: palaceBook01,
-  bookTitle: `${palaceBook01.meta.title} · 首册`,
+  book: systemPetBook01,
+  bookTitle: `${systemPetBook01.meta.title} · 首册`,
   state: null,
   scene: null,
   storyText: '',
@@ -52,19 +52,19 @@ const app = {
   score: null,
   isFinished: false,
   pressedRegionId: null,
-  chapterLabel: ''
+  chapterLabel: '',
+  showStatusPanel: false
 };
 
 function chapterLabelFromScene(scene) {
   const labels = {
-    chapter_1: '第一章 · 入宫',
-    chapter_2: '第二章 · 永巷',
-    chapter_3: '第三章 · 流言',
-    chapter_4: '第四章 · 毒局',
-    chapter_5: '第五章 · 定局'
+    chapter_1: '第一章 · 觉醒',
+    chapter_2: '第二章 · 锋芒',
+    chapter_3: '第三章 · 碾压',
+    chapter_4: '第四章 · 进化'
   };
 
-  return labels[scene.chapter] || '宫斗本';
+  return labels[scene.chapter] || (app.book.meta.theme === 'system_pet' ? '灵宠纪元' : '宫斗本');
 }
 
 function syncFromView(view, textPrefix) {
@@ -87,6 +87,16 @@ function bootBook() {
 function handleRegionTap(region) {
   if (region.id === 'restart') {
     bootBook();
+    return;
+  }
+
+  if (region.id === 'toggle_status') {
+    app.showStatusPanel = !app.showStatusPanel;
+    return;
+  }
+
+  if (region.id === 'status_panel_bg') {
+    app.showStatusPanel = false;
     return;
   }
 
