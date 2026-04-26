@@ -293,15 +293,20 @@ function renderStoryScreen(ctx, app, metrics) {
   ctx.font = '12px sans-serif';
   ctx.fillText('点击选项推动剧情', layout.padding, metrics.height - 18 - (metrics.safeBottomInset || 0));
 
-  const statusBtnW = 60;
-  const statusBtnH = 28;
-  const statusBtnX = layout.width - layout.padding - statusBtnW;
-  const statusBtnY = layout.topInset + 32;
-  drawRoundedRect(ctx, statusBtnX, statusBtnY, statusBtnW, statusBtnH, 14, COLORS.chip, COLORS.accentSoft);
-  ctx.fillStyle = COLORS.accent;
-  ctx.font = '12px sans-serif';
-  ctx.fillText('状态', statusBtnX + 16, statusBtnY + 19);
-  regions.push({ id: 'toggle_status', x: statusBtnX, y: statusBtnY, w: statusBtnW, h: statusBtnH });
+  const sceneTags = app.scene.tags || [];
+  const showStatusBtn = !sceneTags.includes('pre-awakening');
+
+  if (showStatusBtn) {
+    const statusBtnW = 60;
+    const statusBtnH = 28;
+    const statusBtnX = layout.width - layout.padding - statusBtnW;
+    const statusBtnY = layout.topInset + 32;
+    drawRoundedRect(ctx, statusBtnX, statusBtnY, statusBtnW, statusBtnH, 14, COLORS.chip, COLORS.accentSoft);
+    ctx.fillStyle = COLORS.accent;
+    ctx.font = '12px sans-serif';
+    ctx.fillText('状态', statusBtnX + 16, statusBtnY + 19);
+    regions.push({ id: 'toggle_status', x: statusBtnX, y: statusBtnY, w: statusBtnW, h: statusBtnH });
+  }
 
   if (app.showStatusPanel) {
     const panelRegion = renderStatusPanel(ctx, app, layout);
